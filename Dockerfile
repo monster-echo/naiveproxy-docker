@@ -30,7 +30,8 @@ LABEL org.opencontainers.image.source="https://github.com/klzgrad/naiveproxy"
 RUN apk add --no-cache \
     ca-certificates \
     tzdata \
-    gcompat && \
+    gcompat \
+    libgcc && \
     rm -rf /var/cache/apk/*
 
 # Create non-root user for security
