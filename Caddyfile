@@ -1,0 +1,14 @@
+# Replace with your domain and email
+:443, your-domain.com {
+  tls your-email@example.com
+
+  route {
+    forward_proxy {
+      basic_auth your_user your_password
+      hide_headers
+    }
+    file_server {
+      root /var/www/html
+    }
+  }
+}

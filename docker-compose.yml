@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # NaiveProxy Client
   naiveproxy:
     image: ${IMAGE_NAME:-rwecho/naiveproxy}:${IMAGE_TAG:-latest}
     container_name: naiveproxy
@@ -11,9 +12,17 @@ services:
       - "${PORT:-1080}:1080"
     environment:
       - TZ=${TZ:-UTC}
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "socks://127.0.0.1:1080"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 5s
+
+  # Caddy + forward_proxy Server (optional)
+  caddy:
+    image: ${SERVER_IMAGE_NAME:-rwecho/caddy-forwardproxy}:${SERVER_IMAGE_TAG:-latest}
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy:/etc/caddy
+      - ./html:/var/www/html
+    profiles:
+      - server

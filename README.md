@@ -1,76 +1,155 @@
 # NaiveProxy Docker
 
-[![Build and Push Docker Image](https://github.com/rwecho/naiveproxy-docker/actions/workflows/docker-build.yml/badge.svg)](https://github.com/rwecho/naiveproxy-docker/actions/workflows/docker-build.yml)
+[![Build and Push Docker Image](https://github.com/monster-echo/naiveproxy-docker/actions/workflows/docker-build.yml/badge.svg)](https://github.com/monster-echo/naiveproxy-docker/actions/workflows/docker-build.yml)
 
-Docker image for [NaiveProxy](https://github.com/klzgrad/naiveproxy) with multi-architecture support (x86_64 and ARM64).
+Docker images for [NaiveProxy](https://github.com/klzgrad/naiveproxy) with multi-architecture support (x86_64 and ARM64).
+
+## Images
+
+| Image | Description |
+|------|-------------|
+| `rwecho/naiveproxy` | NaiveProxy 客户端 |
+| `rwecho/caddy-forwardproxy` | Caddy + forward_proxy (服务端) |
 
 ## Features
 
 - 🏗️ Multi-architecture support (linux/amd64, linux/arm64)
-- 📦 Based on Alpine Linux (minimal image size)
+- 📦 Based on Debian slim (glibc native support)
 - 🔄 Daily automatic builds for new versions
 - 🔒 Runs as non-root user for security
 - ⚡ Multi-stage build for optimized image size
 
 ## Quick Start
 
-### Pull Image
+### Client Mode
 
 ```bash
 docker pull rwecho/naiveproxy:latest
 ```
 
-### Run with Docker
+Create config file:
 
 ```bash
-# Create config file first
-mkdir -p /path/to/config
-cat > /path/to/config/config.json <<EOF
+mkdir -p ~/naive-config
+cat > ~/naive-config/config.json <<'EOF'
 {
   "listen": "socks://0.0.0.0:1080",
-  "proxy": "https://user:password@example.com:443",
-  "log": ""
+  "proxy": "https://user:password@your-server.com:443"
 }
 EOF
 
-# Run container
+Run client:
+
+```bash
 docker run -d \
   --name naiveproxy \
   --restart unless-stopped \
-  -v /path/to/config:/etc/naive \
+  -v ~/naive-config:/etc/naive \
   -p 1080:1080 \
   rwecho/naiveproxy:latest
 ```
 
-### Run with Docker Compose
+### Server Mode (Caddy + forward_proxy)
+
+```bash
+docker pull rwecho/caddy-forwardproxy:latest
+```
+
+Create directories:
+
+```bash
+mkdir -p ~/naive-server/{caddy,html}
+```
+
+Create Caddyfile (`~/naive-server/caddy/Caddyfile`):
+
+```text
+your-domain.com {
+  tls your-email@example.com
+
+  route {
+    forward_proxy {
+      basic_auth your_user your_password
+      hide_headers
+    }
+    file_server {
+      root /var/www/html
+    }
+  }
+}
+```
+
+Create a simple HTML page (`~/naive-server/html/index.html`):
+
+```html
+<!DOCTYPE html>
+<html>
+<head><title>Welcome</title></head>
+<body><h1>Welcome!</h1></body>
+</html>
+```
+
+Run server:
+
+```bash
+docker run -d \
+  --name caddy \
+  --restart unless-stopped \
+  -v ~/naive-server/caddy:/etc/caddy \
+  -v ~/naive-server/html:/var/www/html \
+  -p 80:80 \
+  -p 443:443 \
+  rwecho/caddy-forwardproxy:latest
+```
+
+### Docker Compose
 
 ```yaml
 version: '3.8'
 
 services:
-  naiveproxy:
-    image: rwecho/naiveproxy:latest
-    container_name: naiveproxy
+  caddy:
+    image: rwecho/caddy-forwardproxy:latest
+    container_name: caddy
     restart: unless-stopped
-    volumes:
-      - ./config:/etc/naive
     ports:
-      - "1080:1080"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy:/etc/caddy
+      - ./html:/var/www/html
 ```
 
 ## Configuration
 
-Create a `config.json` file with your NaiveProxy configuration:
+### Client Config (config.json)
 
 ```json
 {
   "listen": "socks://0.0.0.0:1080",
-  "proxy": "https://user:password@your-server:443",
-  "log": ""
+  "proxy": "https://user:password@your-server:443"
 }
 ```
 
 For more configuration options, see [NaiveProxy documentation](https://github.com/klzgrad/naiveproxy).
+
+### Server Caddyfile
+
+```text
+your-domain.com {
+  tls your-email@example.com
+
+  route {
+    forward_proxy {
+      basic_auth your_user your_password
+      hide_headers
+    }
+    file_server {
+      root /var/www/html
+    }
+  }
+}
+```
 
 ## Environment Variables
 
@@ -81,7 +160,7 @@ For more configuration options, see [NaiveProxy documentation](https://github.co
 ## Available Tags
 
 - `latest` - Latest stable version
-- `VERSION` - Specific version (e.g., `120.0.6099.43-1`)
+- `VERSION` - Specific version (e.g., `143.0.7499.109-2`)
 
 ## GitHub Actions
 
@@ -105,18 +184,17 @@ You can also trigger a manual build with a specific version:
 1. Go to Actions → Build and Push NaiveProxy Docker Image
 2. Click "Run workflow"
 3. Enter the version (optional)
-4. Click "Run workflow"
+4. Check "build_server" to also build the server image
+5. Click "Run workflow"
 
 ## Building Locally
 
 ```bash
-# Build for current architecture
-docker build --build-arg NAIVEPROXY_VERSION=120.0.6099.43-1 -t naiveproxy:local .
+# Build client
+docker build -t naiveproxy:local .
 
-# Build for multiple architectures (requires buildx)
-docker buildx build --platform linux/amd64,linux/arm64 \
-  --build-arg NAIVEPROXY_VERSION=120.0.6099.43-1 \
-  -t naiveproxy:local .
+# Build server
+docker build -f Dockerfile.server -t caddy-forwardproxy:local .
 ```
 
 ## License

@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  caddy:
+    image: caddy-forwardproxy:latest
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./html:/var/www/html
+      - caddy_data:/data
+
+volumes:
+  caddy_data:
