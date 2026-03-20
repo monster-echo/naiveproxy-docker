@@ -8,13 +8,17 @@ ARG NAIVEPROXY_VERSION
 WORKDIR /build
 
 # Install dependencies for downloading
-RUN apk add --no-cache curl tar
+RUN apk add --no-cache curl xz
 
 # Download and extract NaiveProxy
-RUN ARCH=$(echo ${TARGETARCH} | sed 's/amd64/x64/' | sed 's/arm64/arm64/') && \
-    curl -L -o naiveproxy.tar.xz "https://github.com/klzgrad/naiveproxy/releases/download/v${NAIVEPROXY_VERSION}/naiveproxy-v${NAIVEPROXY_VERSION}-linux-${ARCH}.tar.xz" && \
-    tar -xf naiveproxy.tar.xz && \
-    mv naiveproxy-v${NAIVEPROXY_VERSION}-linux-${ARCH}/naive /build/naive
+RUN set -eux; \
+    ARCH=$(echo ${TARGETARCH} | sed 's/amd64/x64/' | sed 's/arm64/arm64/'); \
+    echo "Downloading naiveproxy for ${TARGETARCH} -> ${ARCH}"; \
+    FILENAME="naiveproxy-v${NAIVEPROXY_VERSION}-linux-${ARCH}"; \
+    curl -L -o naiveproxy.tar.xz "https://github.com/klzgrad/naiveproxy/releases/download/v${NAIVEPROXY_VERSION}/${FILENAME}.tar.xz"; \
+    tar -xJf naiveproxy.tar.xz; \
+    mv "${FILENAME}/naive" /build/naive; \
+    chmod +x /build/naive
 
 # Runtime stage
 FROM alpine:3.19
