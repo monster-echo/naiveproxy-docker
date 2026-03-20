@@ -26,10 +26,11 @@ FROM alpine:3.19
 LABEL maintainer="naiveproxy-docker"
 LABEL org.opencontainers.image.source="https://github.com/klzgrad/naiveproxy"
 
-# Install runtime dependencies
+# Install runtime dependencies (gcompat for glibc compatibility)
 RUN apk add --no-cache \
     ca-certificates \
-    tzdata && \
+    tzdata \
+    gcompat && \
     rm -rf /var/cache/apk/*
 
 # Create non-root user for security
