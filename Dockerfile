@@ -20,23 +20,21 @@ RUN set -eux; \
     mv "${FILENAME}/naive" /build/naive; \
     chmod +x /build/naive
 
-# Runtime stage
-FROM alpine:3.19
+# Runtime stage - Use Debian slim for glibc support
+FROM debian:bookworm-slim
 
 LABEL maintainer="naiveproxy-docker"
 LABEL org.opencontainers.image.source="https://github.com/klzgrad/naiveproxy"
 
-# Install runtime dependencies (gcompat for glibc compatibility)
-RUN apk add --no-cache \
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
-    tzdata \
-    gcompat \
-    libgcc && \
-    rm -rf /var/cache/apk/*
+    tzdata && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
-RUN addgroup -g 1000 naive && \
-    adduser -u 1000 -G naive -s /bin/sh -D naive
+RUN groupadd -g 1000 naive && \
+    useradd -u 1000 -g naive -s /bin/sh -m naive
 
 WORKDIR /app
 
