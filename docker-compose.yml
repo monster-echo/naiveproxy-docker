@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  naiveproxy:
+    image: ${IMAGE_NAME:-rwecho/naiveproxy}:${IMAGE_TAG:-latest}
+    container_name: naiveproxy
+    restart: unless-stopped
+    volumes:
+      - ./config:/etc/naive
+    ports:
+      - "${PORT:-1080}:1080"
+    environment:
+      - TZ=${TZ:-UTC}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "socks://127.0.0.1:1080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
